@@ -1,3 +1,6 @@
+# Igor files
+*.itx
+
 # Environments
 .env
 .venv
