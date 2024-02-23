@@ -1,6 +1,9 @@
 # Igor files
 *.itx
 
+# Compiled python files
+*.pyc
+
 # Environments
 .env
 .venv
