@@ -11,14 +11,13 @@ class Tool(Enum):
     NONE = -1
     MARK = 0
     CUT = 1
+    DRILL = 2
 
 
 class Gerber:
     fileName: str
     units: Units
-    cutoffset: Point
-    markoffset: Point
-    drilloffset: Point
+    offsets: list[Point]
 
     origin: Point
     current_path: list[Point]
@@ -53,9 +52,9 @@ class Gerber:
                 # Default to hundredths.
                 self.units = Units.HUNDREDTHS
 
-        self.cutoffset = Point.from_text(cutoffset)
-        self.markoffset = Point.from_text(markoffset)
-        self.drilloffset = Point.from_text(drilloffset)
+        self.offsets.append(Point.from_text(markoffset))
+        self.offsets.append(Point.from_text(cutoffset))
+        self.offsets.append(Point.from_text(drilloffset))
 
         logging.basicConfig(format="%(message)s")
         self.logger = logging.getLogger(__name__)
