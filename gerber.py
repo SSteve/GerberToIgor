@@ -55,9 +55,9 @@ class Gerber:
         self.markoffset = Point.from_text(markoffset)
         self.drilloffset = Point.from_text(drilloffset)
 
-        logging.basicConfig()
+        logging.basicConfig(format="%(message)s")
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.DEBUG)  # if verbose else logging.INFO)
+        self.logger.setLevel(logging.DEBUG if verbose else logging.INFO)
 
         self.origin = Point.from_xy(0, 0, self.units)
         self.current_path = []
