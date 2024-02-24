@@ -46,7 +46,6 @@ def gerber_tokenizer(input_string: str) -> Iterator[Token]:
             x, y = map(int, re.findall(r"-?\d+", cmd))
             yield Token.from_coordinate(x, y)
         else:
-            yield Token.from_command(cmd[0], cmd[1:])
 
 
 if __name__ == "__main__":
