@@ -34,7 +34,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
 
     # Verbose flag
-    parser.add_argument("-v", "--verbose", help="Display progress to terminal.")
+    parser.add_argument(
+        "-v", "--verbose", help="Display progress to terminal.", action="store_true"
+    )
 
     return parser
 
@@ -46,6 +48,7 @@ def gerber_tokenizer(input_string: str) -> Iterator[Token]:
             x, y = map(int, re.findall(r"-?\d+", cmd))
             yield Token.from_coordinate(x, y)
         else:
+            yield Token.from_command(cmd[0], int(cmd[1:]))
 
 
 if __name__ == "__main__":
@@ -53,7 +56,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     gerber = Gerber(
-        args.gerberfile, args.units, args.cutoffset, args.markoffset, args.drilloffset
+        args.gerberfile,
+        args.units,
+        args.cutoffset,
+        args.markoffset,
+        args.drilloffset,
+        args.verbose,
     )
 
     with open(args.gerberfile, "r") as gerber_file:
