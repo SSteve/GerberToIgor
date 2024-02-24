@@ -25,6 +25,8 @@ class Gerber:
     current_location: Point
     current_tool: Tool
     tool_is_down: bool
+    pattern_number = -1
+    file_number = -1
 
     igor: Igor
 
@@ -65,7 +67,7 @@ class Gerber:
         self.tool_is_down = False
 
     def tool_down(self, tool: Tool):
-        self.logger.warning(f"Tool {tool} down.")
+        self.logger.debug(f"Tool {tool} down.")
         self.current_tool = tool
         self.current_path.append(self.current_location)
         self.tool_is_down = True
@@ -87,6 +89,17 @@ class Gerber:
     def set_origin(self):
         self.origin = self.current_location
 
+    def go_to_origin(self):
+        self.current_location = self.origin
+        if self.tool_is_down:
+            self.current_path.append(self.current_location)
+
+    def set_pattern_number(self, pattern_number: int):
+        self.pattern_number = pattern_number
+
+    def set_file_number(self, file_number: int):
+        self.file_number = file_number
+
     def command(self, cmd: Token):
         # self.logger.debug(cmd)
         if cmd.is_coordinate:
@@ -101,9 +114,16 @@ class Gerber:
             self.tool_up()
         elif cmd.code == "B" or (cmd.code == "M" and cmd.value == 14):
             self.tool_down(Tool.CUT)
-        elif cmd.code == "D" and cmd.code == 1:
+        elif cmd.code == "D" and cmd.value == 1:
             self.tool_down(Tool.MARK)
-        elif cmd.code == "M" and cmd.code == 70:
+        elif cmd.code == "G" and cmd.value == 4:
             self.set_origin()
+        elif cmd.code == "H":
+            self.set_file_number(cmd.value)
+        elif cmd.code == "N":
+            self.set_pattern_number(cmd.value)
+        elif cmd.code == "M":
+            if cmd.value == 70:
+                self.go_to_origin()
         else:
-            self.logger.debug(f"Didn't process command {cmd}")
+            self.logger.info(f"Didn't process command {cmd}")
