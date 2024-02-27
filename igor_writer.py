@@ -4,6 +4,7 @@ from point import Point
 
 
 class MyTextIOWrapper:
+    # Class that implements write_line so I don't have to add "\n" to the end of every string.
     wrapper: io.TextIOWrapper
 
     def __init__(self, file: io.TextIOWrapper):
@@ -57,5 +58,11 @@ class Igor:
 
         self.file.write_line("X Variable/G logWaveQuantity=10")
 
+    def finish(self):
+        raise NotImplementedError("Plotting paths not implemented")
+
     def plot_path(self, tool: int, path: list[Point]):
-        pass
+        raise NotImplementedError("Plotting paths not implemented")
+
+    def plot_drill(self, location: Point):
+        raise NotImplementedError("Drilling not implemented")

@@ -42,7 +42,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 
 def gerber_tokenizer(input_string: str) -> Iterator[Token]:
-    commands = re.findall(r"([A-W,Z]\d*|X-?\d+Y-?\d+)", input_string)
+    commands = re.findall(r"([A-W,Z/]\d*|X-?\d+Y-?\d+)", input_string)
     for cmd in commands:
         if cmd.startswith("X"):
             x, y = map(int, re.findall(r"-?\d+", cmd))
@@ -66,4 +66,8 @@ if __name__ == "__main__":
 
     with open(args.gerberfile, "r") as gerber_file:
         for token in gerber_tokenizer(gerber_file.read()):
-            gerber.command(token)
+            should_stop = gerber.command(token)
+            if should_stop:
+                break
+
+    gerber.finish()

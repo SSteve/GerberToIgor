@@ -2,9 +2,14 @@ import logging
 import os
 from enum import Enum
 
+from gerber_to_igor import gerber_tokenizer
 from gerber_token import Token
 from igor_writer import Igor
 from point import Point, Units
+
+
+class GerberDataError(Exception):
+    pass
 
 
 class Tool(Enum):
@@ -52,6 +57,7 @@ class Gerber:
                 # Default to hundredths.
                 self.units = Units.HUNDREDTHS
 
+        self.offsets = []
         self.offsets.append(Point.from_text(markoffset))
         self.offsets.append(Point.from_text(cutoffset))
         self.offsets.append(Point.from_text(drilloffset))
@@ -65,11 +71,26 @@ class Gerber:
         self.current_tool = Tool.NONE
         self.tool_is_down = False
 
+    def finish(self) -> None:
+        self.igor.finish()
+
+    def offset_current_path(self):
+        return map(
+            lambda point: point + self.offsets[self.current_tool], self.current_path
+        )
+
     def tool_down(self, tool: Tool):
         self.logger.debug(f"Tool {tool} down.")
         self.current_tool = tool
         self.current_path.append(self.current_location)
         self.tool_is_down = True
+
+    def drill(self):
+        if len(self.current_path):
+            raise GerberDataError(
+                "There should not be a path when the drill command executes."
+            )
+        self.igor.plot_drill(self.current_location)
 
     def tool_up(self):
         self.logger.debug("Tool up.")
@@ -99,11 +120,19 @@ class Gerber:
     def set_file_number(self, file_number: int):
         self.file_number = file_number
 
-    def command(self, cmd: Token):
+    def resume_normal_speed(self):
+        pass
+
+    def command(self, cmd: Token) -> bool:
+        # Process a Gerber command. Return true if processing should stop.
         # self.logger.debug(cmd)
         if cmd.is_coordinate:
             self.move(cmd.x, cmd.y)
-            return
+            return False
+
+        if cmd.code == "M" and cmd.value == 0:
+            # M0 is stop code.
+            return True
 
         if (
             cmd.code == "A"
@@ -115,14 +144,38 @@ class Gerber:
             self.tool_down(Tool.CUT)
         elif cmd.code == "D" and cmd.value == 1:
             self.tool_down(Tool.MARK)
-        elif cmd.code == "G" and cmd.value == 4:
-            self.set_origin()
+        elif cmd.code == "G":
+            if cmd.value == 4:
+                self.set_origin()
+            elif cmd.value == 70:
+                self.units = Units.THOUSANDTHS
+            elif cmd.value == 71:
+                self.units = Units.TENTHS
+            elif cmd.value == 91:
+                self.units = Units.HUNDREDTHS
         elif cmd.code == "H":
             self.set_file_number(cmd.value)
         elif cmd.code == "N":
             self.set_pattern_number(cmd.value)
+        elif cmd.code == "O" or (cmd.code == "M" and cmd.value == 26):
+            self.resume_normal_speed()
+        elif cmd.code == "R" or (
+            cmd.code == "M" and (cmd.value == 43 or cmd.value == 44)
+        ):
+            self.drill()
+        elif cmd.code == "E" or (cmd.code == "M" and cmd.value == 68):
+            raise NotImplementedError("Wasn't expecting E/M68 (Flick notch).")
         elif cmd.code == "M":
             if cmd.value == 70:
                 self.go_to_origin()
+            elif cmd.value == 30:
+                raise NotImplementedError("Wasn't expecting M30 (Rewind data file).")
+            elif cmd.value == 69:
+                raise NotImplementedError("Wasn't expecting M69 (Conveyor bite).")
+        elif cmd.code == "/":
+            raise NotImplementedError("Wasn't expecting '/' (Block delete).")
         else:
-            self.logger.info(f"Didn't process command {cmd}")
+            self.logger.info(f"Didn't process command {cmd}.")
+
+        # Return false to indicate processing should continue.
+        return False
