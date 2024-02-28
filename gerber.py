@@ -2,7 +2,6 @@ import logging
 import os
 from enum import Enum
 
-from gerber_to_igor import gerber_tokenizer
 from gerber_token import Token
 from igor_writer import Igor
 from point import Point, Units
@@ -132,6 +131,7 @@ class Gerber:
 
         if cmd.code == "M" and cmd.value == 0:
             # M0 is stop code.
+            self.igor.finish()
             return True
 
         if (
