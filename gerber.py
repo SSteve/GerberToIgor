@@ -89,12 +89,20 @@ class Gerber:
             raise GerberDataError(
                 "There should not be a path when the drill command executes."
             )
-        self.igor.plot_drill(self.current_location)
+        self.igor.plot_drill(self.current_location + self.offsets[Tool.DRILL.value])
 
     def tool_up(self):
         self.logger.debug("Tool up.")
         if len(self.current_path):
-            self.igor.plot_path(self.current_tool, self.current_path)
+            self.igor.plot_path(
+                self.current_tool,
+                list(
+                    map(
+                        lambda p: p + self.offsets[self.current_tool.value],
+                        self.current_path,
+                    )
+                ),
+            )
         self.current_path = []
         self.current_tool = Tool.NONE
         self.tool_is_down = False
@@ -131,7 +139,6 @@ class Gerber:
 
         if cmd.code == "M" and cmd.value == 0:
             # M0 is stop code.
-            self.igor.finish()
             return True
 
         if (
