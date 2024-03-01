@@ -112,6 +112,8 @@ class Igor:
             'X SetVariable logWaveQuantityControl pos={334.00,5.00}, size={60,20}, value=logWaveQuantity, limits={1,inf,1}, fSize = 12, title="n:"'
         )
 
+        self.output_file.close()
+
     def write_last_ends_wave(self, start: Point, end: Point):
         self.file.write_line("WAVES/O/N=(2, 2) lastPathEnds")
         self.file.write_line("BEGIN")
