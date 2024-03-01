@@ -112,6 +112,41 @@ class Igor:
             'X SetVariable logWaveQuantityControl pos={334.00,5.00}, size={60,20}, value=logWaveQuantity, limits={1,inf,1}, fSize = 12, title="n:"'
         )
 
+        self.file.write_line(
+            'X SetVariable lastStartXDisplay,pos={5.00,26.00},size={120.00,17.00},title="Last start:"'
+        )
+        self.file.write_line("X SetVariable lastStartXDisplay,fSize=12,frame=0")
+        self.file.write_line(
+            "X SetVariable lastStartXDisplay,limits={-inf,inf,0},value=lastPathEnds[0][0],noedit= 1"
+        )
+        self.file.write_line(
+            "X SetVariable lastStartYDisplay,pos={124.00,26.00},size={120.00,17.00}"
+        )
+        self.file.write_line("X SetVariable lastStartYDisplay,fSize=12,frame=0")
+        self.file.write_line(
+            'X SetVariable lastStartYDisplay,limits={-inf,inf,0},value=lastPathEnds[0][1],noedit= 1,title=" "'
+        )
+
+        self.file.write_line(
+            'X SetVariable lastEndXDisplay,pos={5.00,42.00},size={120.00,17.00},title="Last end:"'
+        )
+        self.file.write_line("X SetVariable lastEndXDisplay,fSize=12,frame=0")
+        self.file.write_line(
+            "X SetVariable lastEndXDisplay,limits={-inf,inf,0},value=lastPathEnds[1][0],noedit= 1"
+        )
+        self.file.write_line(
+            "X SetVariable lastEndYDisplay,pos={124.00,42.00},size={120.00,17.00}"
+        )
+        self.file.write_line("X SetVariable lastEndYDisplay,fSize=12,frame=0")
+        self.file.write_line(
+            'X SetVariable lastEndYDisplay,limits={-inf,inf,0},value=lastPathEnds[1][1],noedit= 1,title=" "'
+        )
+
+        self.file.write_line(
+            'X CheckBox showEndsCheckBox,pos={5.00,63.00},size={48.00,16.00},proc=ShowEndsCheckProc,title="Show"'
+        )
+        self.file.write_line("X CheckBox showEndsCheckBox,fSize=12,value= 0")
+
         self.output_file.close()
 
     def write_last_ends_wave(self, start: Point, end: Point):
