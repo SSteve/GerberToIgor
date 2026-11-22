@@ -27,6 +27,7 @@ Output is written next to the input as `FILE.itx`.
 - Managed with **uv**; installable package with a `src/` layout.
 - Develop on Python **3.15** (`.python-version`); supports **3.12+** (`requires-python`).
 - Lint/format with **ruff** (dev dependency; VS Code formats on save).
+- Test with **pytest**: `uv run pytest` (tests in `tests/`).
 - Check the oldest supported version with
   `uv run --isolated --python 3.12 gerber-to-igor sample.gbr`.
 
@@ -65,9 +66,10 @@ Output is written next to the input as `FILE.itx`.
 
 ## Current status
 
-Phase 1 is complete: both sample files run to completion on Python 3.15 and
-3.12. No path data is written to the `.itx` file yet, and tool offsets are
-parsed but never applied. There are no tests. Next up: Phase 2.
+Phases 1 and 2 are complete: both sample files run to completion on Python
+3.15 and 3.12, and 55 pytest tests cover the tokenizer, interpreter, units,
+Igor writer, and CLI. No path data is written to the `.itx` file yet, and tool
+offsets are parsed but never applied. Next up: Phase 3.
 
 ## Phase 1 — Bug fixes ✅ Done
 
@@ -108,7 +110,12 @@ Ordered by severity.
 - Import `Iterator` from `collections.abc` (ruff UP035).
 - Add `*.swp` to `.gitignore` (a Vim swap file was swept into a built wheel).
 
-## Phase 2 — Tests
+## Phase 2 — Tests ✅ Done
+
+`tests/conftest.py` provides a `make_gerber` fixture whose `RecordingGerber`
+captures paths sent to `Igor.plot_path`, so interpreter tests don't depend on
+the output format. The end-to-end tests in `tests/test_cli.py` currently check
+only the `.itx` header; extend them when Phase 3 writes path data.
 
 - Add `pytest` as a dev dependency and a `tests/` directory.
 - Tokenizer tests: coordinates (including negatives), commands with and
