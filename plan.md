@@ -8,19 +8,11 @@ Pro text files (`.itx`) that plot the mark, cut, and drill tool paths.
 
 ### Usage
 
+See `README.md` for user documentation (options, output, messages). In short:
+
 ```sh
-uv run gerber-to-igor [-u UNITS] [-m X,Y] [-c X,Y] [-d X,Y] [-v] FILE.gbr
+uv run gerber-to-igor [-o OUT.itx] [-u UNITS] [-m X,Y] [-c X,Y] [-d X,Y] [-v] FILE.gbr
 ```
-
-| Option | Meaning |
-|---|---|
-| `-u`, `--units` | 1 = tenths of millimeters, 2 = hundredths of inches (default), 3 = thousandths of inches |
-| `-m`, `--markoffset` | Mark tool offset in inches (`x,y`) |
-| `-c`, `--cutoffset` | Cut tool offset in inches (`x,y`) |
-| `-d`, `--drilloffset` | Drill tool offset in inches (`x,y`) |
-| `-v`, `--verbose` | Log progress to the terminal |
-
-Output is written next to the input as `FILE.itx`.
 
 ### Tooling
 
@@ -84,9 +76,9 @@ with 5% padding, labeled in inches, at a 1:1 aspect ratio.
 
 ## Current status
 
-Phases 1–3 are complete. Both sample files convert to a full `.itx` plot on
-Python 3.15 and 3.12, covered by 93 pytest tests. The output has been checked
-for syntax by inspection but not yet opened in Igor Pro. Next up: Phase 4.
+All four phases are complete. Both sample files convert to a full `.itx` plot
+on Python 3.15 and 3.12, covered by 110 pytest tests, and the generated
+files have been confirmed to open correctly in Igor Pro.
 
 ## Phase 1 — Bug fixes ✅ Done
 
@@ -171,8 +163,19 @@ Not implemented (follow-ups):
 5. **Coordinate edge cases** — check the spec for modal/partial coordinates
    (X-only or Y-only) and support them in the tokenizer if allowed.
 
-## Phase 4 — Polish
+## Phase 4 — Polish ✅ Done
 
-- README with usage and examples.
-- Option to choose the output path.
-- Clear error messages for malformed input instead of tracebacks.
+- **README** (`README.md`): install, usage, options, output format, messages,
+  and development commands.
+- **Output path**: `-o/--output`; default is the input path with `.itx`.
+- **Error messages**: user-fixable problems print
+  `gerber-to-igor: error: …` with no traceback. Bad options exit 2 (argparse
+  usage errors); unreadable input, unwritable output, or an output path equal
+  to the input exit 1. Offsets are validated as finite `X,Y` pairs while
+  parsing arguments, and input is read as latin-1 so stray bytes become
+  skipped blocks rather than decode errors.
+- Also added `--version`, and `Gerber` now takes an output path and `Point`
+  offsets as keyword arguments (`mark_offset`, `cut_offset`, `drill_offset`).
+- Negative offsets: `-c -1,2` works only on Python 3.14+ (argparse change);
+  `-c-1,2` or `--cutoffset=-1,2` works everywhere. Documented in `--help` and
+  the README.

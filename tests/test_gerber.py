@@ -218,12 +218,6 @@ def test_units_apply_to_moves(make_gerber, units, x, expected):
     assert gerber.current_location.y == pytest.approx(expected)
 
 
-def test_bad_offset_does_not_create_output(tmp_path, make_gerber):
-    with pytest.raises(ValueError):
-        make_gerber(cutoffset="bad")
-    assert not (tmp_path / "test.itx").exists()
-
-
 def test_sample_file_paths(make_gerber):
     paths = make_gerber().run(SAMPLE.read_text())
     assert [tool for tool, _ in paths] == [Tool.MARK, Tool.CUT, Tool.MARK, Tool.CUT]

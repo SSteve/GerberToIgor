@@ -42,7 +42,11 @@ def make_gerber(tmp_path: Path) -> Iterator[Callable[..., RecordingGerber]]:
         drilloffset: str = "0,0",
     ) -> RecordingGerber:
         gerber = RecordingGerber(
-            str(tmp_path / "test.gbr"), units, cutoffset, markoffset, drilloffset
+            str(tmp_path / "test.itx"),
+            units,
+            mark_offset=Point.from_text(markoffset),
+            cut_offset=Point.from_text(cutoffset),
+            drill_offset=Point.from_text(drilloffset),
         )
         created.append(gerber)
         return gerber

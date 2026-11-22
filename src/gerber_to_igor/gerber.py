@@ -1,5 +1,4 @@
 import logging
-import os
 from types import TracebackType
 from typing import Self
 
@@ -9,6 +8,8 @@ from .point import Point, Units
 from .tool import Tool
 
 logger = logging.getLogger(__name__)
+
+NO_OFFSET = Point(0, 0)
 
 # Commands that control the machine (speed, sharpening, knife intelligence,
 # stops, ...) but don't change what is drawn. See GERBER.pdf, table 2-1.
@@ -38,7 +39,6 @@ NO_PLOT_EFFECT_CODES = {"F", "L", "O", "Q", "Z"}
 
 
 class Gerber:
-    fileName: str
     units: Units
     offsets: dict[Tool, Point]
 
@@ -56,21 +56,24 @@ class Gerber:
 
     def __init__(
         self,
-        fileName: str,
+        output_path: str,
         units: Units,
-        cutoffset: str,
-        markoffset: str,
-        drilloffset: str,
+        *,
+        mark_offset: Point = NO_OFFSET,
+        cut_offset: Point = NO_OFFSET,
+        drill_offset: Point = NO_OFFSET,
     ):
-        self.units = units
+        """Interpret Gerber commands and write the plot to output_path (.itx).
 
-        cut = Point.from_text(cutoffset)
+        Offsets are in inches and are added to everything drawn by that tool.
+        """
+        self.units = units
         self.offsets = {
-            Tool.MARK: Point.from_text(markoffset),
-            Tool.CUT: cut,
-            Tool.DRILL: Point.from_text(drilloffset),
+            Tool.MARK: mark_offset,
+            Tool.CUT: cut_offset,
+            Tool.DRILL: drill_offset,
             # Notches are made by the knife.
-            Tool.NOTCH: cut,
+            Tool.NOTCH: cut_offset,
         }
 
         self.origin = Point.from_xy(0, 0, self.units)
@@ -81,9 +84,7 @@ class Gerber:
         self.finished = False
         self.ignored_after_end = 0
 
-        # Open the output last so a bad argument doesn't leave an empty file.
-        basename, _ = os.path.splitext(fileName)
-        self.igor = Igor(basename + ".itx")
+        self.igor = Igor(output_path)
 
     def close(self) -> None:
         if self.tool_is_down:
