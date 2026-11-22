@@ -1,0 +1,18 @@
+[project]
+name = "gerber-to-igor"
+version = "0.1.0"
+description = "Convert cutter Gerber files to Igor Pro text files"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.6",
+]
+
+[project.scripts]
+gerber-to-igor = "gerber_to_igor.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.13.9,<0.14"]
+build-backend = "uv_build"

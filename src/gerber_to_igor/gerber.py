@@ -2,9 +2,9 @@ import logging
 import os
 from enum import Enum
 
-from gerber_token import Token
-from igor_writer import Igor
-from point import Point, Units
+from .gerber_token import Token
+from .igor_writer import Igor
+from .point import Point, Units
 
 
 class Tool(Enum):

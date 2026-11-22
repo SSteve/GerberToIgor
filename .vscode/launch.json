@@ -8,7 +8,7 @@
             "name": "Python Debugger: gerber_to_igor",
             "type": "debugpy",
             "request": "launch",
-            "program": "gerber_to_igor.py",
+            "module": "gerber_to_igor",
             "args": ["-v", "-m", "1,1", "-c", "2,2", "-d", "3,3", "Gerber square with notch and offset.gbr"],
             "console": "integratedTerminal"
         }

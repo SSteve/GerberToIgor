@@ -2,8 +2,8 @@ import argparse
 import re
 from typing import Iterator
 
-from gerber import Gerber
-from gerber_token import Token
+from .gerber import Gerber
+from .gerber_token import Token
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -51,7 +51,7 @@ def gerber_tokenizer(input_string: str) -> Iterator[Token]:
             yield Token.from_command(cmd[0], int(cmd[1:]))
 
 
-if __name__ == "__main__":
+def main() -> None:
     parser = build_arg_parser()
     args = parser.parse_args()
 

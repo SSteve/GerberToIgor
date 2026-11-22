@@ -1,6 +1,6 @@
 import io
 
-from point import Point
+from .point import Point
 
 
 class MyTextIOWrapper:
