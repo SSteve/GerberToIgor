@@ -9,26 +9,31 @@ class Units(Enum):
     THOUSANDTHS = 3
 
 
+# Inches per Gerber coordinate unit.
+INCHES_PER_UNIT = {
+    Units.TENTHS: 0.1 / 25.4,
+    Units.HUNDREDTHS: 0.01,
+    Units.THOUSANDTHS: 0.001,
+}
+
+
 @dataclass(frozen=True)
 class Point:
     x: float
     y: float
 
-    @staticmethod
-    def from_xy(x: int, y: int, units: Units) -> Self:
-        match units:
-            case Units.TENTHS:
-                return Point(0.0039 * x, 0.0039 * y)
-            case Units.HUNDREDTHS:
-                return Point(0.01 * x, 0.01 * y)
-            case Units.THOUSANDTHS:
-                return Point(0.001 * x, 0.001 * y)
+    @classmethod
+    def from_xy(cls, x: int, y: int, units: Units) -> Self:
+        try:
+            scale = INCHES_PER_UNIT[units]
+        except KeyError:
+            raise ValueError(f"Unknown units: {units!r}") from None
+        return cls(scale * x, scale * y)
 
-    def from_text(text: str) -> Self:
+    @classmethod
+    def from_text(cls, text: str) -> Self:
         x_text, y_text = text.split(",")
-        x = float(x_text)
-        y = float(y_text)
-        return Point(x, y)
+        return cls(float(x_text), float(y_text))
 
     def __add__(self, other: Self) -> Self:
-        return Point(self.x + other.x, self.y + other.y)
+        return type(self)(self.x + other.x, self.y + other.y)

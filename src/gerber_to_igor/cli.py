@@ -1,9 +1,11 @@
 import argparse
+import logging
 import re
-from typing import Iterator
+from collections.abc import Iterator
 
 from .gerber import Gerber
 from .gerber_token import Token
+from .point import Units
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -15,7 +17,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "-u",
         "--units",
         help="Units: 1 = tenths of millimeters, 2 = hundredths of inches, 3 = thousandths of inches",
-        default=2,
+        type=int,
+        choices=[unit.value for unit in Units],
+        default=Units.HUNDREDTHS.value,
     )
 
     # Mark tool offset
@@ -42,28 +46,35 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 
 def gerber_tokenizer(input_string: str) -> Iterator[Token]:
-    commands = re.findall(r"([A-W,Z]\d*|X-?\d+Y-?\d+)", input_string)
+    commands = re.findall(r"([A-WZ]\d*|X-?\d+Y-?\d+)", input_string)
     for cmd in commands:
         if cmd.startswith("X"):
             x, y = map(int, re.findall(r"-?\d+", cmd))
             yield Token.from_coordinate(x, y)
         else:
-            yield Token.from_command(cmd[0], int(cmd[1:]))
+            # Some commands (e.g. A, B) have no number.
+            value = int(cmd[1:]) if len(cmd) > 1 else None
+            yield Token.from_command(cmd[0], value)
 
 
 def main() -> None:
     parser = build_arg_parser()
     args = parser.parse_args()
 
-    gerber = Gerber(
+    logging.basicConfig(
+        format="%(message)s",
+        level=logging.DEBUG if args.verbose else logging.INFO,
+    )
+
+    with open(args.gerberfile) as gerber_file:
+        text = gerber_file.read()
+
+    with Gerber(
         args.gerberfile,
-        args.units,
+        Units(args.units),
         args.cutoffset,
         args.markoffset,
         args.drilloffset,
-        args.verbose,
-    )
-
-    with open(args.gerberfile, "r") as gerber_file:
-        for token in gerber_tokenizer(gerber_file.read()):
+    ) as gerber:
+        for token in gerber_tokenizer(text):
             gerber.command(token)

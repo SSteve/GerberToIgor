@@ -39,6 +39,7 @@ Output is written next to the input as `FILE.itx`.
 | `src/gerber_to_igor/gerber_token.py` | `Token`: a command (letter + optional number) or an X/Y coordinate |
 | `src/gerber_to_igor/gerber.py` | `Gerber`: interpreter state machine — tool up/down, position, origin, current path |
 | `src/gerber_to_igor/point.py` | `Point` (frozen dataclass), unit conversion to inches, addition |
+| `src/gerber_to_igor/tool.py` | `Tool` enum (mark, cut, drill) |
 | `src/gerber_to_igor/igor_writer.py` | `Igor`: writes the `.itx` header and color tables; path output not yet implemented |
 
 ### Command mapping (current)
@@ -64,11 +65,15 @@ Output is written next to the input as `FILE.itx`.
 
 ## Current status
 
-The tool does not currently run: it crashes during `Gerber.__init__` before any
-commands are processed. No path data is written to the `.itx` file yet, and
-tool offsets are parsed but never applied. There are no tests.
+Phase 1 is complete: both sample files run to completion on Python 3.15 and
+3.12. No path data is written to the `.itx` file yet, and tool offsets are
+parsed but never applied. There are no tests. Next up: Phase 2.
 
-## Phase 1 — Bug fixes
+## Phase 1 — Bug fixes ✅ Done
+
+All items below are fixed. One extra bug was found and fixed along the way:
+unhandled `M` commands were silently dropped instead of logged, so `M26`,
+`M43`, and `M0` now appear as "Didn't process command".
 
 Ordered by severity.
 

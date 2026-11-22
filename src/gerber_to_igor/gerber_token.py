@@ -3,18 +3,18 @@ from typing import Self
 
 class Token:
     code: str
-    value: int
-    x: int
-    y: int
+    value: int | None
+    x: int | None
+    y: int | None
     is_coordinate: bool
 
-    @staticmethod
-    def from_command(code: str, value: int | None) -> Self:
-        return Token(code=code, value=value)
+    @classmethod
+    def from_command(cls, code: str, value: int | None) -> Self:
+        return cls(code=code, value=value)
 
-    @staticmethod
-    def from_coordinate(x: int, y: int) -> Self:
-        return Token(x=x, y=y)
+    @classmethod
+    def from_coordinate(cls, x: int, y: int) -> Self:
+        return cls(x=x, y=y)
 
     def __init__(
         self,
@@ -32,7 +32,7 @@ class Token:
     def __repr__(self):
         if self.is_coordinate:
             return f"({self.x},{self.y})"
-        elif self.value:
+        elif self.value is not None:
             return f"{self.code}{self.value}"
         else:
             return self.code

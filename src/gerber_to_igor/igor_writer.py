@@ -1,6 +1,9 @@
 import io
+from types import TracebackType
+from typing import Self
 
 from .point import Point
+from .tool import Tool
 
 
 class MyTextIOWrapper:
@@ -32,7 +35,8 @@ class Igor:
 
         self.graph_name = "Gerber Plot"
 
-        self.output_file = open(fileName, "w")
+        # Closed by close() / the context manager protocol.
+        self.output_file = open(fileName, "w")  # noqa: SIM115
         self.file = MyTextIOWrapper(self.output_file)
 
         self.file.write_line("IGOR")
@@ -57,5 +61,19 @@ class Igor:
 
         self.file.write_line("X Variable/G logWaveQuantity=10")
 
-    def plot_path(self, tool: int, path: list[Point]):
+    def plot_path(self, tool: Tool, path: list[Point]):
         pass
+
+    def close(self) -> None:
+        self.output_file.close()
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
+        self.close()
