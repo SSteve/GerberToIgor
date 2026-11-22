@@ -144,11 +144,16 @@ only the `.itx` header; extend them when Phase 3 writes path data.
 
 ## Phase 3 — Features ✅ Done
 
-All items below are done. Not implemented (follow-ups):
+All items below are done.
+
+Out of scope (decided not to implement):
 
 - **Labels (`M31`)**: label text blocks are skipped with a warning; `M31` is
   logged as unprocessed.
 - **Pattern and file numbers** (`N`, `H`) are stored but not used in the output.
+
+Not implemented (follow-ups):
+
 - **`M0` vs `M00`**: the spec lists `M0` as end of file and `M00` as program
   stop, but both parse as 0 and are treated as end of file.
 - **Block delete (`/`)**: not supported; such blocks are skipped with a warning.
