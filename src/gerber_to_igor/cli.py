@@ -7,6 +7,8 @@ from .gerber import Gerber
 from .gerber_token import Token
 from .point import Units
 
+logger = logging.getLogger(__name__)
+
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
@@ -45,16 +47,30 @@ def build_arg_parser() -> argparse.ArgumentParser:
     return parser
 
 
+# A block (text between "*" end-of-block markers) is an optional coordinate,
+# either axis of which may be omitted, followed by zero or more commands.
+BLOCK = re.compile(r"(?:X([-+]?\d+))?(?:Y([-+]?\d+))?((?:[A-WZ]\d*)*)")
+COMMAND = re.compile(r"([A-WZ])(\d*)")
+
+
 def gerber_tokenizer(input_string: str) -> Iterator[Token]:
-    commands = re.findall(r"([A-WZ]\d*|X-?\d+Y-?\d+)", input_string)
-    for cmd in commands:
-        if cmd.startswith("X"):
-            x, y = map(int, re.findall(r"-?\d+", cmd))
-            yield Token.from_coordinate(x, y)
-        else:
+    for raw_block in input_string.split("*"):
+        block = re.sub(r"\s+", "", raw_block)
+        if not block:
+            continue
+        match = BLOCK.fullmatch(block)
+        if not match:
+            # E.g. label text following an M31 block, which isn't supported.
+            logger.warning(f"Skipping unrecognized block {raw_block.strip()!r}")
+            continue
+        x, y, commands = match.groups()
+        if x is not None or y is not None:
+            yield Token.from_coordinate(
+                None if x is None else int(x), None if y is None else int(y)
+            )
+        for code, digits in COMMAND.findall(commands):
             # Some commands (e.g. A, B) have no number.
-            value = int(cmd[1:]) if len(cmd) > 1 else None
-            yield Token.from_command(cmd[0], value)
+            yield Token.from_command(code, int(digits) if digits else None)
 
 
 def main() -> None:

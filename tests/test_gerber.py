@@ -82,15 +82,98 @@ def test_file_and_pattern_numbers(make_gerber):
     assert gerber.pattern_number == 7
 
 
-def test_unprocessed_commands_are_logged(make_gerber, caplog):
+def test_unknown_commands_are_logged(make_gerber, caplog):
     with caplog.at_level(logging.INFO, logger="gerber_to_igor"):
-        make_gerber().run("M26*M43*M0*G1*")
+        make_gerber().run("G1*M31*M99*")
     assert [r.getMessage() for r in caplog.records] == [
-        "Didn't process command M26",
-        "Didn't process command M43",
-        "Didn't process command M0",
         "Didn't process command G1",
+        "Didn't process command M31",
+        "Didn't process command M99",
     ]
+
+
+@pytest.mark.parametrize(
+    "command", ["M26", "M25", "L", "O", "M60", "M67", "F20", "Z5", "M42", "D4"]
+)
+def test_commands_without_plot_effect_are_ignored_quietly(make_gerber, caplog, command):
+    gerber = make_gerber()
+    with caplog.at_level(logging.INFO, logger="gerber_to_igor"):
+        paths = gerber.run(f"X0Y0*M14*{command}*X100Y0*M15*")
+    assert caplog.records == []
+    assert coords(paths[0][1]) == [(0, 0), (1, 0)]
+
+
+@pytest.mark.parametrize("command", ["M43", "R", "M44"])
+def test_drill(make_gerber, command):
+    gerber = make_gerber(drilloffset="0.5,-0.5")
+    gerber.run(f"X250Y250*{command}*")
+    assert gerber.points == [(Tool.DRILL, Point(3.0, 2.0))]
+    assert gerber.paths == []
+
+
+@pytest.mark.parametrize("command", ["E", "M68"])
+def test_notch_uses_cut_offset(make_gerber, command):
+    gerber = make_gerber(cutoffset="1,1", markoffset="5,5")
+    gerber.run(f"X100Y0*{command}*")
+    assert gerber.points == [(Tool.NOTCH, Point(2.0, 1.0))]
+
+
+def test_drill_while_cutting_does_not_break_path(make_gerber):
+    gerber = make_gerber()
+    paths = gerber.run("X0Y0*M14*X100Y0*M43*X200Y0*M15*")
+    assert coords(paths[0][1]) == [(0, 0), (1, 0), (2, 0)]
+    assert gerber.points == [(Tool.DRILL, Point(1.0, 0.0))]
+
+
+def test_offsets_applied_to_paths_by_tool(make_gerber):
+    gerber = make_gerber(markoffset="1,1", cutoffset="2,-2")
+    paths = gerber.run("X0Y0*D1*X100Y0*D2*M14*X0Y0*M15*")
+    assert [(tool, coords(path)) for tool, path in paths] == [
+        (Tool.MARK, [(1, 1), (2, 1)]),
+        (Tool.CUT, [(3, -2), (2, -2)]),
+    ]
+
+
+def test_offsets_do_not_change_current_location(make_gerber):
+    gerber = make_gerber(cutoffset="2,2")
+    gerber.run("X100Y100*M14*X200Y200*M15*")
+    assert gerber.current_location == Point(2.0, 2.0)
+
+
+@pytest.mark.parametrize(
+    ("command", "units"),
+    [("G70", Units.THOUSANDTHS), ("G71", Units.TENTHS), ("G91", Units.HUNDREDTHS)],
+)
+def test_file_sets_units(make_gerber, command, units):
+    gerber = make_gerber()
+    gerber.run(f"N1*{command}*")
+    assert gerber.units == units
+
+
+def test_units_change_applies_to_later_moves(make_gerber):
+    gerber = make_gerber()
+    paths = gerber.run("X100Y0*M14*G70*X2000Y0*M15*")
+    assert flat(paths[0][1]) == pytest.approx([1.0, 0.0, 2.0, 0.0])
+
+
+def test_end_of_file_stops_processing(make_gerber, caplog):
+    gerber = make_gerber()
+    with caplog.at_level(logging.INFO, logger="gerber_to_igor"):
+        paths = gerber.run("X0Y0*M14*X100Y0*M0*X200Y0*M14*X300Y0*")
+        gerber.close()
+    assert gerber.finished
+    assert [(tool, coords(path)) for tool, path in paths] == [
+        (Tool.CUT, [(0, 0), (1, 0)])
+    ]
+    assert gerber.current_location == Point(1.0, 0.0)
+    assert [r.getMessage() for r in caplog.records] == [
+        "Ignored 3 command(s) after M0 (end of file)"
+    ]
+
+
+def test_x_only_and_y_only_moves_keep_other_axis(make_gerber):
+    paths = make_gerber().run("X100Y200*M14*X300*Y400*M15*")
+    assert coords(paths[0][1]) == [(1, 2), (3, 2), (3, 4)]
 
 
 def test_close_flushes_open_path(make_gerber):
@@ -110,11 +193,14 @@ def test_context_manager_closes_output(make_gerber):
     assert gerber.igor.output_file.closed
 
 
-def test_offsets_indexed_by_tool(make_gerber):
+def test_offsets_by_tool(make_gerber):
     gerber = make_gerber(markoffset="1,1", cutoffset="2,2", drilloffset="3,3")
-    assert gerber.offsets[Tool.MARK.value] == Point(1, 1)
-    assert gerber.offsets[Tool.CUT.value] == Point(2, 2)
-    assert gerber.offsets[Tool.DRILL.value] == Point(3, 3)
+    assert gerber.offsets == {
+        Tool.MARK: Point(1, 1),
+        Tool.CUT: Point(2, 2),
+        Tool.DRILL: Point(3, 3),
+        Tool.NOTCH: Point(2, 2),
+    }
 
 
 @pytest.mark.parametrize(
@@ -166,3 +252,7 @@ def test_notch_sample_file_paths(make_gerber):
     ]
     assert all(len(path) == 2 for _, path in paths)
     assert not gerber.tool_is_down
+    assert gerber.points == [(Tool.DRILL, Point(5.5, 5.5))]
+    # Offsets: mark 1,1; cut 2,2.
+    assert flat(paths[0][1]) == pytest.approx([0.5, 0.5, 10.5, 10.5])
+    assert flat(paths[1][1]) == pytest.approx([12.25, 7.5, 12.5, 7.63])

@@ -72,3 +72,37 @@ def test_notch_sample_file():
     assert len(tokens) == 43
     assert sum(t.is_coordinate for t in tokens) == 17
     assert repr(tokens[-1]) == "M0"
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("X100*", ["(100,_)"]),
+        ("Y-20*", ["(_,-20)"]),
+        ("X+5Y+6*", ["(5,6)"]),
+    ],
+)
+def test_partial_and_signed_coordinates(text, expected):
+    assert reprs(text) == expected
+
+
+def test_coordinate_and_command_in_one_block():
+    assert reprs("X100Y200M31*") == ["(100,200)", "M31"]
+
+
+def test_several_commands_in_one_block():
+    assert reprs("N10M25*") == ["N10", "M25"]
+
+
+def test_unrecognized_blocks_are_skipped_with_warning(caplog):
+    text = "X1Y1M31*Normal Label*Mirror Label*X2Y2M31*"
+    assert reprs(text) == ["(1,1)", "M31", "(2,2)", "M31"]
+    assert [r.getMessage() for r in caplog.records] == [
+        "Skipping unrecognized block 'Normal Label'",
+        "Skipping unrecognized block 'Mirror Label'",
+    ]
+
+
+def test_coordinate_requires_an_axis():
+    with pytest.raises(ValueError):
+        Token.from_coordinate(None, None)

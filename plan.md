@@ -40,22 +40,40 @@ Output is written next to the input as `FILE.itx`.
 | `src/gerber_to_igor/gerber_token.py` | `Token`: a command (letter + optional number) or an X/Y coordinate |
 | `src/gerber_to_igor/gerber.py` | `Gerber`: interpreter state machine — tool up/down, position, origin, current path |
 | `src/gerber_to_igor/point.py` | `Point` (frozen dataclass), unit conversion to inches, addition |
-| `src/gerber_to_igor/tool.py` | `Tool` enum (mark, cut, drill) |
-| `src/gerber_to_igor/igor_writer.py` | `Igor`: writes the `.itx` header and color tables; path output not yet implemented |
+| `src/gerber_to_igor/tool.py` | `Tool` enum (mark, cut, drill, notch) |
+| `src/gerber_to_igor/igor_writer.py` | `Igor`: collects paths and points and writes the `.itx` waves, graph, and axes |
 
-### Command mapping (current)
+### Command mapping
+
+Per `GERBER.pdf`, table 2-1. Input is split into `*`-terminated blocks; each
+block is an optional coordinate (either axis may be omitted) followed by zero
+or more commands.
 
 | Command | Action |
 |---|---|
-| `X…Y…` | Move to coordinate (appended to path if a tool is down) |
-| `D1` | Mark tool down |
-| `M14`, `B` | Cut tool down |
-| `D2`, `M15`, `A` | Tool up (flushes current path to Igor) |
+| `X…Y…`, `X…`, `Y…` | Move (an omitted axis is unchanged); appended to path if a tool is down |
+| `D1` | Mark (pen) down |
+| `M14`, `B` | Cut (knife) down |
+| `D2`, `M15`, `A` | Tool up (sends the path, with the tool's offset, to Igor) |
+| `M43`, `R`, `M44` | Drill at the current location (drill offset) |
+| `M68`, `E` | Notch at the current location (cut offset) |
 | `G4` | Set origin to current location |
 | `M70` | Go to origin |
+| `G70` / `G71` / `G91` | Switch to thousandths of inches / tenths of mm / hundredths of inches |
+| `M0` | End of file; later commands are counted and reported, not processed |
 | `H<n>` | Set file number |
 | `N<n>` | Set pattern number |
-| others (`M0`, `M26`, `M43`, …) | Logged as unprocessed |
+| Speed, sharpening, knife intelligence, stops (`M25`, `M26`, `L`, `O`, `F`, `M60`–`M67`, …) | Ignored quietly (no effect on the plot) |
+| anything else (e.g. `M31`) | Logged as "Didn't process command" |
+| unparseable blocks (e.g. label text) | Skipped with a warning |
+
+### Igor output
+
+The `.itx` file opens a graph named `GerberPlot` (replacing any existing one)
+and adds one X/Y wave pair per tool: `markX/markY` and `cutX/cutY` as lines
+(paths separated by NaN), and `drillX/drillY` and `notchX/notchY` as markers.
+Colors come from the `plotColors` table in the header. The axes cover all data
+with 5% padding, labeled in inches, at a 1:1 aspect ratio.
 
 ### Sample data
 
@@ -66,10 +84,9 @@ Output is written next to the input as `FILE.itx`.
 
 ## Current status
 
-Phases 1 and 2 are complete: both sample files run to completion on Python
-3.15 and 3.12, and 55 pytest tests cover the tokenizer, interpreter, units,
-Igor writer, and CLI. No path data is written to the `.itx` file yet, and tool
-offsets are parsed but never applied. Next up: Phase 3.
+Phases 1–3 are complete. Both sample files convert to a full `.itx` plot on
+Python 3.15 and 3.12, covered by 93 pytest tests. The output has been checked
+for syntax by inspection but not yet opened in Igor Pro. Next up: Phase 4.
 
 ## Phase 1 — Bug fixes ✅ Done
 
@@ -125,7 +142,17 @@ only the `.itx` header; extend them when Phase 3 writes path data.
 - End-to-end test: run on each sample file and check the `.itx` output once
   Phase 3 lands.
 
-## Phase 3 — Features
+## Phase 3 — Features ✅ Done
+
+All items below are done. Not implemented (follow-ups):
+
+- **Labels (`M31`)**: label text blocks are skipped with a warning; `M31` is
+  logged as unprocessed.
+- **Pattern and file numbers** (`N`, `H`) are stored but not used in the output.
+- **`M0` vs `M00`**: the spec lists `M0` as end of file and `M00` as program
+  stop, but both parse as 0 and are treated as end of file.
+- **Block delete (`/`)**: not supported; such blocks are skipped with a warning.
+
 
 1. **Implement `Igor.plot_path`** — write each path as Igor waves, apply
    `offsets[tool.value]`, color by tool, and track min/max bounds.

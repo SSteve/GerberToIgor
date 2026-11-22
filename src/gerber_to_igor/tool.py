@@ -6,3 +6,4 @@ class Tool(Enum):
     MARK = 0
     CUT = 1
     DRILL = 2
+    NOTCH = 3

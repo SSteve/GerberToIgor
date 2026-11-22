@@ -16,12 +16,14 @@ type RecordedPath = tuple[Tool, list[Point]]
 
 
 class RecordingGerber(Gerber):
-    """A Gerber that records each path sent to Igor instead of writing it."""
+    """A Gerber that records each path and point sent to Igor."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.paths: list[RecordedPath] = []
+        self.points: list[tuple[Tool, Point]] = []
         self.igor.plot_path = lambda tool, path: self.paths.append((tool, list(path)))
+        self.igor.plot_point = lambda tool, point: self.points.append((tool, point))
 
     def run(self, text: str) -> list[RecordedPath]:
         for token in gerber_tokenizer(text):
